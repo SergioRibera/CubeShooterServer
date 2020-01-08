@@ -1,3 +1,6 @@
+//ws://127.0.0.1:25565/socket.io/?EIO=4&transport=websocket
+//ws://cubeshooterserver.herokuapp.com:80/socket.io/?EIO=4&transport=websocket
+
 var io = require('socket.io')(process.env.PORT || 25565);
 var Player = require('./Classes/Player.js');
 
@@ -29,7 +32,7 @@ io.on('connection', function(socket){
 
         socket.emit('spawn', player);
         socket.broadcast.emit('spawn', player);
-        console.log(data.username + '  '+ data.id);
+        console.log(data.username + '  '+ player.id);
     });
 
     //Tell myself about everyone else in the game
@@ -51,6 +54,11 @@ io.on('connection', function(socket){
         //console.log('Player set positions value');
         socket.broadcast.emit('updatePosition', player);
         //console.log('Player position Update');
+    });
+    socket.on('updateLife', function(data){
+        player.Life = data.Life;
+        socket.broadcast.emit('updateLife', player);
+        console.log('Player Life change');
     });
     socket.on('Shoot', function(data){
         player.shoot = data.shoot;
