@@ -60,6 +60,11 @@ io.on('connection', function(socket){
         socket.broadcast.emit('updateLife', player);
         console.log('Player Life change');
     });
+    socket.on('updateReviving', function(data){
+        player.isReviving = data.isReviving;
+        socket.broadcast.emit('updateReviving', player);
+        console.log('Player reviving change');
+    });
     socket.on('Shoot', function(data){
         player.shoot = data.shoot;
         socket.broadcast.emit('Shoot', player);
