@@ -57,6 +57,7 @@ io.on('connection', function(socket){
     });
     socket.on('updateLife', function(data){
         player.Life = data.Life;
+        socket.emit('updateLife', player);
         socket.broadcast.emit('updateLife', player);
         console.log('Player Life change');
     });
