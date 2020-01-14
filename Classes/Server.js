@@ -94,10 +94,10 @@ module.exports = class Server{
             });
         }
 
+        let gamelobby = new GameLobby(gameLobbies.length + 1, new GameLobbySettings(data.gameMode, data.gameMapa, 4));
         // Create new lobby per player
         if(!lobbyFound){
             console.log('Making new game Lobby');
-            let gamelobby = new GameLobby(gameLobbies.length + 1, new GameLobbySettings(data.gameMode, data.gameMapa, 4));
             server.lobbys.push(gamelobby);
             server.onSwitchLobby(connection, gamelobby.id);
 
@@ -111,7 +111,7 @@ module.exports = class Server{
             };
         }
         console.log(connection.lobby.id);
-        connection.socket.to(connection.lobby.id).emit('JoinGameLobby', returnData);
+        connection.socket.to(gamelobby.id).emit('JoinGameLobby', returnData);
         console.log("Connection to lobby");
     }
 
