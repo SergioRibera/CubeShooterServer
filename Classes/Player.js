@@ -4,6 +4,7 @@ var vector3 = require('./Vector3.js');
 module.exports = class Player{
     constructor(){
         this.username = '';
+        this.lobby = 0;
         this.Life = 100;
         this.playerColor = '';
         this.id = shortID.generate();
@@ -13,5 +14,10 @@ module.exports = class Player{
         this.v = 0.0;
         this.shoot = false;
         this.isReviving = false;
+    }
+
+    displayerPlayerInformation(){
+        let player = this;
+        return '(' + player.username + ' : ' + player.id + ')';
     }
 }
