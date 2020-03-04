@@ -5,6 +5,7 @@ module.exports = class Player{
     constructor(){
         this.username = '';
         this.lobby = 0;
+        this.ready = false;
         this.Life = 100;
         this.playerColor = '';
         this.id = shortID.generate();

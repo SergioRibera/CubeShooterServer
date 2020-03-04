@@ -14,30 +14,11 @@ setInterval(()=>{
     server.onUpdate();
 }, 100, 0);
 
-io.on('connection', function(socket){
+io.on('connection', function(socket) {
     let connection = server.onConnected(socket);
     connection.createEvents();
     connection.socket.emit('register', { id : connection.player.id, lobbyId: connection.lobby.id });
 });
-
-function interval(func, wait, timers){
-    var interv = function(w, t){
-        return function(){
-            if(typeof t === "undefined" || t-- > 0){
-                setTimeout(interv, w);
-                try{
-                    func.call(null);
-                }
-                catch(e){
-                    t = 0;
-                    throw e.toString();
-                }
-            }
-        };
-    }(wait, timers);
-    setTimeout(interv, wait);
-}
-
 /* io.on('connection', function(socket){
         var player = new Player();
         var thisPlayerID = player.id;

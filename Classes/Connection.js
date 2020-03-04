@@ -14,6 +14,9 @@ module.exports = class Connection{
         let player = connection.player;
 
         socket.on('disconnect', function(){
+            server.lobbys[player.lobby].connections.forEach(c => {
+                c.socket.emit('LeftGameLobby', { playerId: player.id } );
+            });
             server.onDisconnect(connection);
         });
 
@@ -21,7 +24,30 @@ module.exports = class Connection{
         socket.on('JoinGame', function(data){
             connection.player = data.player;
             server.onAttemptToJoinGame(connection, data);
-            console.log("Connected To Lobby");
+            console.log("Connected To Lobby with " + connection.lobby.connections.length + " players");
+        });
+        socket.on('LobbySettingsChanged', function(data){
+            server.lobbys[player.lobby].connections.forEach(c => {
+                c.socket.emit('ChangeSettingsLobby', { gameMode: data.gameMode, gameMapa: data.gameMapa } );
+            });
+        });
+        socket.on('PlayerReady', function(data){
+            let idPlayer = data.id;
+            let ready = data.ready;
+            server.lobbys[player.lobby].connections.forEach(c => {
+                c.socket.emit('PlayerReady', { IdPlayer: idPlayer, Ready: ready } );
+            });
+        });
+        socket.on('PlayGame', function(){
+            var p = {};
+            var i = 0;
+            server.lobbys[player.lobby].connections.forEach(c => {
+                p.players[i] = c.player;
+                i++;
+            });
+            server.lobbys[player.lobby].connections.forEach(c => {
+                c.socket.emit('spawn', p);
+            });
         });
 
         //Positional Data from client

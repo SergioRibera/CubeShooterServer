@@ -20,6 +20,12 @@ module.exports = class Server{
         // Update each lobby
         for(let id in server.lobbys){
             server.lobbys[id].onUpdate();
+            if(id > 0){
+                if(server.lobbys[id].connections.length == 0){
+                    console.log('Closing down lobby (' + id + ')');
+                    server.lobbys.splice(id, 1);
+                }
+            }
         }
     }
 
@@ -29,10 +35,10 @@ module.exports = class Server{
         let connection = new Connection();
         connection.socket = socket;
         connection.player = new Player();
-        connection.server = this;
+        connection.server = server;
 
         let player = connection.player;
-        let lobbys = this.lobbys;
+        let lobbys = server.lobbys;
 
         console.log('Added new player to the server (' + player.id + ')');
         server.connections[player.id] = connection;
@@ -51,12 +57,22 @@ module.exports = class Server{
         delete server.connections[id];
         //console.log('Player ' + connection.player.displayerPlayerInformation() + ' has discpnnected');
 
-        connection.socket.broadcast.to(connection.lobby.id).emit('disconnected', {
+        connection.socket.broadcast.to(connection.player.lobby).emit('disconnected', {
             id: id
         });
 
         // Preform lobby clean up
-        server.lobbys[connection.player.lobby].onLeaveLobby(connection);
+        let currentLobbyIndex = connection.player.lobby;
+        if(currentLobbyIndex > -1){
+            if(server.lobbys[currentLobbyIndex] != null){
+                server.lobbys[currentLobbyIndex].onLeaveLobby(connection);
+            }
+        }
+
+        if (currentLobbyIndex != 0 && server.lobbys[currentLobbyIndex].connections.length == 0) {
+            console.log('Closing down lobby (' + currentLobbyIndex + ')');
+            server.lobbys.splice(currentLobbyIndex, 1);
+        }
     }
 
     onAttemptToJoinGame(connection = Connection, data){
@@ -79,7 +95,12 @@ module.exports = class Server{
                             lobbyFound = true;
                             server.onSwitchLobby(connection, lobby.id);
                             returnData = {
+                                idPlayer: '',
+                                username: '',
+                                color: '',
                                 idLobby: lobby.id,
+                                idPlayerMaster: lobby.idPlayerMaster,
+                                playersInGame: lobby.connections.length,
                                 gameLobbySettings: {
                                     gameMode: data.gameMode,
                                     gameMapa: data.gameMapa,
@@ -94,15 +115,20 @@ module.exports = class Server{
             });
         }
 
-        let gamelobby = new GameLobby(gameLobbies.length + 1, new GameLobbySettings(data.gameMode, data.gameMapa, 4));
         // Create new lobby per player
         if(!lobbyFound){
             console.log('Making new game Lobby');
+            let gamelobby = new GameLobby(gameLobbies.length + 1, connection.player.id, new GameLobbySettings(data.gameMode, data.gameMapa, 4));
             server.lobbys.push(gamelobby);
             server.onSwitchLobby(connection, gamelobby.id);
 
             returnData = {
+                idPlayer: '',
+                username: '',
+                color: '',
                 idLobby: gamelobby.id,
+                idPlayerMaster: gamelobby.idPlayerMaster, 
+                playersInGame: gamelobby.connections.length,
                 gameLobbySettings: {
                     gameMode: data.gameMode,
                     gameMapa: data.gameMapa,
@@ -110,20 +136,32 @@ module.exports = class Server{
                 }
             };
         }
-        console.log(connection.lobby.id);
-        connection.socket.to(gamelobby.id).emit('JoinGameLobby', returnData);
-        console.log("Connection to lobby");
+        returnData.players = [];
+        let i = 0;
+        server.lobbys[returnData.idLobby].connections.forEach(c => {
+            returnData.idPlayer = c.player.id;
+            returnData.username = c.player.username;
+            returnData.color = c.player.playerColor;
+            returnData.players[i] = c.player;
+            i++;
+        });
+        server.lobbys[returnData.idLobby].connections.forEach(c => {
+            c.socket.emit('JoinGameLobby', returnData);
+        });
+        console.log('Player Join a Rom');
+        //connection.socket.to('' + connection.player.lobby).emit('JoinGameLobby', returnData);
     }
 
     onSwitchLobby(connection = Connection, lobbyID){
         let server = this;
         let lobbys = server.lobbys;
 
-        connection.socket.join(lobbyID);
+        connection.socket.join('' + lobbyID);
         connection.lobby = lobbys[lobbyID];
-        connection.lobby.id = lobbyID;
-
-        lobbys[connection.player.lobby].onLeaveLobby();
+        
+        lobbys[connection.player.lobby].onLeaveLobby(connection);
         lobbys[lobbyID].onEnterLobby(connection);
+
+        console.log('Jugadores eliminados del lobby 1');
     }
 }

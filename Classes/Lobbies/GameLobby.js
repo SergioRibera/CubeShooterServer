@@ -3,14 +3,14 @@ let GameLobbySettings = require('./GameLobbySettings');
 let Connection = require('../Connection');
 
 module.exports = class GameLobby extends LobbyBase{
-    constructor(id, settings = GameLobbySettings){
-        super(id);
+    constructor(id, idMaster, settings = GameLobbySettings){
+        super(id, idMaster);
         this.settings = settings;
     }
 
     onUpdate(){
         let lobby = this;
-
+        super.onUpdate();
         //lobby.updateDeadPlayers();
     }
 
@@ -27,10 +27,25 @@ module.exports = class GameLobby extends LobbyBase{
 
     onEnterLobby(connection = Connection){
         let lobby = this;
-
+        let socket = connection.socket;
         super.onEnterLobby(connection);
 
-        lobby.addPlayer(connection);
+        //lobby.addPlayer(connection);
+
+        if (lobby.connections.length == lobby.settings.maxPlayers) {
+            console.log('We have enough players we can start the game');
+            //Max players in the lobby
+            // on his change lobby states or settings
+            lobby.onSpawnAllPlayersIntoGame();
+        }
+
+        let returnData = {
+            state: 'Lobby'
+        };
+
+        socket.emit('loadGame');
+        socket.emit('lobbyUpdate', returnData);
+        socket.broadcast.to(lobby.id).emit('lobbyUpdate', returnData);
 
         // Handle spawning any server spawned objects here
         // Example: Loot, bullets, etc
@@ -47,9 +62,13 @@ module.exports = class GameLobby extends LobbyBase{
         // Example: Loot, bullets, etc
     }
 
+    onSpawnAllPlayersIntoGame() {
+        let lobby = this;
+        let connections = lobby.connections;
 
-    onFireBullet(connection = Connection){
-
+        connections.forEach(connection => {
+            lobby.addPlayer(connection);
+        });
     }
 
 
@@ -61,13 +80,11 @@ module.exports = class GameLobby extends LobbyBase{
             id: connection.player.id
         }
         socket.emit('spawn', returnData);
-        socket.broadcast.to(lobby.id).emit('spawn', returnData);
+        //socket.broadcast.to(lobby.id).emit('spawn', returnData);
 
         connections.forEach(c => {
             if(c.player.id != connection.player.id){
-                socket.emit('spawn', {
-                    id: c.player.id
-                });
+                socket.emit('spawn', c.player);
             }
         });
     }
